@@ -11,15 +11,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Gradle
+
+      - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Show build environment
+        run: |
+          java -version
+          gradle --version
+          echo "SDK path: ${ANDROID_HOME:-not-set}"
+          test -f app/src/main/assets/index.html
+          test -f app/src/main/res/drawable/gi_icon.xml
+
       - name: Build debug APK
-        run: gradle assembleDebug
+        run: gradle clean assembleDebug --stacktrace
+
+      - name: Validate APK output
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          echo "APK size:"
+          du -h "$APK"
+          echo "APK file details:"
+          ls -lh "$APK"
+          echo "Validate APK archive:"
+          unzip -t "$APK" | tail -n 2
+          echo "APK validation passed."
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
